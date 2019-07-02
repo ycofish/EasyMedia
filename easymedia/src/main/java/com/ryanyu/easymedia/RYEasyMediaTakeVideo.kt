@@ -1,4 +1,4 @@
-package com.epiccomm.fsee.ryanlib.utils
+package com.ryanyu.easymedia
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -14,44 +14,54 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.support.v4.content.FileProvider
+import com.ryanyu.easymedia.RYEasyMedia
+import com.ryanyu.easymedia.listener.RYEasyMediaTakeVideoResult
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.io.FileOutputStream
 
-
 /**
- * Created by Ryan Yu on 2/1/2019.
+ * Update 2019-02-01
+ *
+ * ██████╗ ██╗   ██╗ █████╗ ███╗   ██╗    ██╗   ██╗██╗   ██╗    ██╗     ██╗██████╗ ██████╗  █████╗ ██████╗ ██╗   ██╗
+ * ██╔══██╗╚██╗ ██╔╝██╔══██╗████╗  ██║    ╚██╗ ██╔╝██║   ██║    ██║     ██║██╔══██╗██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝
+ * ██████╔╝ ╚████╔╝ ███████║██╔██╗ ██║     ╚████╔╝ ██║   ██║    ██║     ██║██████╔╝██████╔╝███████║██████╔╝ ╚████╔╝
+ * ██╔══██╗  ╚██╔╝  ██╔══██║██║╚██╗██║      ╚██╔╝  ██║   ██║    ██║     ██║██╔══██╗██╔══██╗██╔══██║██╔══██╗  ╚██╔╝
+ * ██║  ██║   ██║   ██║  ██║██║ ╚████║       ██║   ╚██████╔╝    ███████╗██║██████╔╝██║  ██║██║  ██║██║  ██║   ██║
+ * ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝       ╚═╝    ╚═════╝     ╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
+ *
+ *
+ * _|_|_|_|                                    _|      _|                    _|   _|
+ * _|           _|_|_|     _|_|_|   _|    _|   _|_|  _|_|     _|_|       _|_|_|          _|_|_|
+ * _|_|_|     _|    _|   _|_|       _|    _|   _|  _|  _|   _|_|_|_|   _|    _|   _|   _|    _|
+ * _|         _|    _|       _|_|   _|    _|   _|      _|   _|         _|    _|   _|   _|    _|
+ * _|_|_|_|     _|_|_|   _|_|_|       _|_|_|   _|      _|     _|_|_|     _|_|_|   _|     _|_|_|
+ *
+ *
+ * Created by Ryan Yu.
  */
 
 class RYEasyMediaTakeVideo(val myActivity: Activity, val context: Context) {
     val ACTIVITY_RESULT_TAKE_VIDEO = 11
-
     private var videoUri: Uri? = null
     private var covervideoUri: Uri? = null
     private var realVideoUri: Uri? = null
-
-
     private var videoFile: File? = null
-
     private var videoFileName: String? = null
     private var saveAsRoot: Boolean? = null
-
+    var requestCode = 999
     var ryEasyMediaTakeVideoResult: RYEasyMediaTakeVideoResult? = null
-
     private val FILE_PROVIDER_AUTHORITY = ".fileprovider"
-
-
     private var imageName: String? = null
-
-
     private var videoSec: Int? = null
     private var videoSize: Int? = null
     private var isHighQuality: Boolean? = true
 
-    fun setRyEasyMediaTakeVideoResult(ryEasyMediaTakeVideoResult: RYEasyMediaTakeVideoResult?): RYEasyMediaTakeVideo? {
+    fun setRyEasyMediaTakeVideoResult(ryEasyMediaTakeVideoResult: RYEasyMediaTakeVideoResult? ,requestCode : Int): RYEasyMediaTakeVideo? {
         this.ryEasyMediaTakeVideoResult = ryEasyMediaTakeVideoResult
+        this.requestCode = requestCode
         return this
     }
 
@@ -78,7 +88,6 @@ class RYEasyMediaTakeVideo(val myActivity: Activity, val context: Context) {
 
 
     fun start() {
-
         videoFile = null
         videoUri = null
         var intent = Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE)
@@ -113,7 +122,7 @@ class RYEasyMediaTakeVideo(val myActivity: Activity, val context: Context) {
         if(videoSec!=null){
             intent.putExtra(MediaStore.EXTRA_DURATION_LIMIT, videoSec!!)
         }
-        
+
 
         myActivity?.startActivityForResult(intent, ACTIVITY_RESULT_TAKE_VIDEO)
     }
@@ -138,10 +147,10 @@ class RYEasyMediaTakeVideo(val myActivity: Activity, val context: Context) {
         return videoFile
     }
 
-    fun OnActivityResultHandle(requestCode: Int?, resultCode: Int?, data: Intent?) {
+    fun onActivityResultHandle(requestCode: Int?, resultCode: Int?, data: Intent?) {
         when (requestCode) {
             ACTIVITY_RESULT_TAKE_VIDEO -> if (resultCode == RESULT_OK) {
-                realVideoUri?.let { ryEasyMediaTakeVideoResult?.onVideoIsReady(realVideoUri!!) }
+                realVideoUri?.let { ryEasyMediaTakeVideoResult?.onVideoIsReady(realVideoUri!!,this.requestCode) }
                 RYEasyMedia.cleanVideoEvent()
             }
         }

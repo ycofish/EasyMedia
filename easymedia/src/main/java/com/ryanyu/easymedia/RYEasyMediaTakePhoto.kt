@@ -1,4 +1,4 @@
-package com.epiccomm.fsee.ryanlib.utils
+package com.ryanyu.easymedia
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -14,15 +14,35 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Handler
 import android.support.v4.content.FileProvider
+
+import com.ryanyu.easymedia.RYEasyMedia
+import com.ryanyu.easymedia.listener.RYEasyMediaTakePhotoResult
 import java.io.FileNotFoundException
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import java.io.FileOutputStream
-
+import kotlin.collections.ArrayList
 
 /**
- * Created by Ryan Yu on 2/1/2019.
+ * Update 2019-02-01
+ *
+ * ██████╗ ██╗   ██╗ █████╗ ███╗   ██╗    ██╗   ██╗██╗   ██╗    ██╗     ██╗██████╗ ██████╗  █████╗ ██████╗ ██╗   ██╗
+ * ██╔══██╗╚██╗ ██╔╝██╔══██╗████╗  ██║    ╚██╗ ██╔╝██║   ██║    ██║     ██║██╔══██╗██╔══██╗██╔══██╗██╔══██╗╚██╗ ██╔╝
+ * ██████╔╝ ╚████╔╝ ███████║██╔██╗ ██║     ╚████╔╝ ██║   ██║    ██║     ██║██████╔╝██████╔╝███████║██████╔╝ ╚████╔╝
+ * ██╔══██╗  ╚██╔╝  ██╔══██║██║╚██╗██║      ╚██╔╝  ██║   ██║    ██║     ██║██╔══██╗██╔══██╗██╔══██║██╔══██╗  ╚██╔╝
+ * ██║  ██║   ██║   ██║  ██║██║ ╚████║       ██║   ╚██████╔╝    ███████╗██║██████╔╝██║  ██║██║  ██║██║  ██║   ██║
+ * ╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═══╝       ╚═╝    ╚═════╝     ╚══════╝╚═╝╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝
+ *
+ *
+ * _|_|_|_|                                    _|      _|                    _|   _|
+ * _|           _|_|_|     _|_|_|   _|    _|   _|_|  _|_|     _|_|       _|_|_|          _|_|_|
+ * _|_|_|     _|    _|   _|_|       _|    _|   _|  _|  _|   _|_|_|_|   _|    _|   _|   _|    _|
+ * _|         _|    _|       _|_|   _|    _|   _|      _|   _|         _|    _|   _|   _|    _|
+ * _|_|_|_|     _|_|_|   _|_|_|       _|_|_|   _|      _|     _|_|_|     _|_|_|   _|     _|_|_|
+ *
+ *
+ * Created by Ryan Yu.
  */
 
 class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Context) {
@@ -37,7 +57,10 @@ class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Contex
 
     private var imageFileName: String? = null
     private var coverImageFileName: String? = null
-    private var saveAsRoot : Boolean? = null
+    private var saveAsRoot: Boolean? = null
+    private var isMultiple: Boolean = false
+    private var multipleMax: Int = 9999
+    var requestCode = 999
 
 
     var ryEasyMediaTakPhotoResult: RYEasyMediaTakePhotoResult? = null
@@ -48,8 +71,12 @@ class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Contex
 
     private var imageName: String? = null
 
-    fun setRYEasyMediaTakPhotoResult(ryEasyMediaTakPhotoResult: RYEasyMediaTakePhotoResult?): RYEasyMediaTakePhoto? {
+    fun setRYEasyMediaTakPhotoResult(
+        ryEasyMediaTakPhotoResult: RYEasyMediaTakePhotoResult?,
+        requestCode: Int
+    ): RYEasyMediaTakePhoto? {
         this.ryEasyMediaTakPhotoResult = ryEasyMediaTakPhotoResult
+        this.requestCode = requestCode
         return this
     }
 
@@ -58,8 +85,13 @@ class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Contex
         return this
     }
 
+    fun isMultiple(isMultiple: Boolean): RYEasyMediaTakePhoto? {
+        this.isMultiple = isMultiple
+        return this
+    }
+
     fun start() {
-        if(saveAsRoot==null) return
+        if (saveAsRoot == null) return
         imageFile = null
         imageUri = null
         var intent = Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE)
@@ -109,11 +141,26 @@ class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Contex
         return imageFile
     }
 
-    fun OnActivityResultHandle(requestCode: Int?, resultCode: Int?, data: Intent?) {
+    fun onActivityResultHandle(requestCode: Int?, resultCode: Int?, data: Intent?) {
         when (requestCode) {
-            ACTIVITY_RESULT_TAKE_PHOTO -> if (resultCode == RESULT_OK) {
-                if (realImageUri != null) {
-                    getImage(realImageUri)
+            ACTIVITY_RESULT_TAKE_PHOTO -> {
+                if (resultCode == RESULT_OK) {
+                    if (realImageUri != null) {
+                        getImage(realImageUri)
+                    }
+                }else if (resultCode == Activity.RESULT_CANCELED) {
+                    if (isMultiple) {
+                        if(coverBitmapArray.size != 0){
+                            ryEasyMediaTakPhotoResult?.onMultipleBitmapIsReady( coverBitmapArray, imageUriArray, this.requestCode)
+                            RYEasyMedia.cleanPhotoEvent()
+                        }else{
+                            ryEasyMediaTakPhotoResult?.onGetBitmapFail(this.requestCode)
+                            RYEasyMedia.cleanPhotoEvent()
+                        }
+                    }else {
+                        ryEasyMediaTakPhotoResult?.onGetBitmapFail(this.requestCode)
+                        RYEasyMedia.cleanPhotoEvent()
+                    }
                 }
             }
         }
@@ -123,7 +170,7 @@ class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Contex
         var bitmap: Bitmap? = null
         try {
             bitmap = BitmapFactory.decodeFile(imageUri?.toString())
-     //       bitmap = BitmapFactory.decodeStream(context?.getContentResolver()?.openInputStream(imageUri))
+            //       bitmap = BitmapFactory.decodeStream(context?.getContentResolver()?.openInputStream(imageUri))
         } catch (e: FileNotFoundException) {
             e.printStackTrace()
         }
@@ -134,12 +181,28 @@ class RYEasyMediaTakePhoto(private val myActivity: Activity, val context: Contex
             return
         }
 
-        var coverBitmap = Bitmap.createScaledBitmap(bitmap, (bitmap.width * 0.1).toInt(), (bitmap.height * 0.1).toInt(), true)
+        var coverBitmap =
+            Bitmap.createScaledBitmap(bitmap, (bitmap.width * 0.1).toInt(), (bitmap.height * 0.1).toInt(), true)
         saveCoverImage(coverBitmap)
-        ryEasyMediaTakPhotoResult?.onBitmapIsReady(bitmap, coverBitmap,imageUri)
-        RYEasyMedia.cleanPhotoEvent()
+
+        if (isMultiple) {
+    //        bitmapArray.add(bitmap)
+            coverBitmapArray.add(coverBitmap)
+            imageUriArray.add(imageUri)
+            if (coverBitmapArray.size == multipleMax) {
+                ryEasyMediaTakPhotoResult?.onMultipleBitmapIsReady( coverBitmapArray, imageUriArray, requestCode)
+                RYEasyMedia.cleanPhotoEvent()
+            }else{
+                start()
+            }
+        } else {
+            ryEasyMediaTakPhotoResult?.onBitmapIsReady(bitmap, coverBitmap, imageUri, requestCode)
+            RYEasyMedia.cleanPhotoEvent()
+        }
     }
 
+    var coverBitmapArray: ArrayList<Bitmap> = ArrayList()
+    var imageUriArray: ArrayList<Uri?> = ArrayList()
 
     private fun saveCoverImage(finalBitmap: Bitmap) {
         try {
